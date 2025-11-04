@@ -1,23 +1,14 @@
 
+
 RESTORE DATABASE Gimnasio FROM DISK = 'C:\backups\Gimnasio.bak'
 
-DROP DATABASE Gimnasio;
-
 USE Gimnasio;
-
-USE master;
 
 ALTER TABLE Entrenador ALTER COLUMN Salario DECIMAL(7,2);
 ALTER TABLE Reserva ALTER COLUMN Fecha_reserva DATETIME2(0);
 
-SELECT * FROM Entrenador;
-
-SELECT * FROM PlanGimnasio
-
-
 -- ============================================================
--- PROCEDIMIENTOS ALMACENADOS PARA BULK INSERT
--- Base de Datos: Gimnasio
+-- PROCEDIMIENTOS ALMACENADOS PARA BULK INSERT PARA POBLAR BASE
 -- ============================================================
 
 USE Gimnasio;
@@ -26,7 +17,7 @@ GO
 -- ============================================================
 -- 1. PROCEDIMIENTO PARA TIPOS DE CLASE
 -- ============================================================
-CREATE OR ALTER PROCEDURE sp_BulkInsert_TipoClase
+CREATE OR ALTER PROCEDURE dbo.BulkInsert_TipoClase
     @RutaArchivo NVARCHAR(500)
 AS
 BEGIN
@@ -58,10 +49,15 @@ BEGIN
 END;
 GO
 
+SELECT OBJECT_ID('dbo.sp_BulkInsert_TipoClase') AS ObjId;
+SELECT * FROM sys.procedures WHERE name = 'sp_BulkInsert_TipoClase';
+
+SELECT * FROM TipoClase;
+
 -- ============================================================
 -- 2. PROCEDIMIENTO PARA PLANES DE GIMNASIO
 -- ============================================================
-CREATE OR ALTER PROCEDURE sp_BulkInsert_PlanGimnasio
+CREATE OR ALTER PROCEDURE dbo.BulkInsert_PlanGimnasio
     @RutaArchivo NVARCHAR(500)
 AS
 BEGIN
@@ -102,7 +98,7 @@ GO
 -- ============================================================
 -- 3. PROCEDIMIENTO PARA SOCIOS
 -- ============================================================
-CREATE OR ALTER PROCEDURE sp_BulkInsert_Socio
+CREATE OR ALTER PROCEDURE dbo.BulkInsert_Socio
     @RutaArchivo NVARCHAR(500)
 AS
 BEGIN
@@ -144,7 +140,7 @@ GO
 -- ============================================================
 -- 4. PROCEDIMIENTO PARA ENTRENADORES
 -- ============================================================
-CREATE OR ALTER PROCEDURE sp_BulkInsert_Entrenador
+CREATE OR ALTER PROCEDURE dbo.BulkInsert_Entrenador
     @RutaArchivo NVARCHAR(500)
 AS
 BEGIN
@@ -180,7 +176,7 @@ GO
 -- ============================================================
 -- 5. PROCEDIMIENTO PARA CLASES
 -- ============================================================
-CREATE OR ALTER PROCEDURE sp_BulkInsert_Clase
+CREATE OR ALTER PROCEDURE dbo.BulkInsert_Clase
     @RutaArchivo NVARCHAR(500)
 AS
 BEGIN
@@ -222,7 +218,7 @@ GO
 -- ============================================================
 -- 6. PROCEDIMIENTO PARA RESERVAS
 -- ============================================================
-CREATE OR ALTER PROCEDURE sp_BulkInsert_Reserva
+CREATE OR ALTER PROCEDURE dbo.BulkInsert_Reserva
     @RutaArchivo NVARCHAR(500)
 AS
 BEGIN
@@ -264,7 +260,7 @@ GO
 -- ============================================================
 -- 7. PROCEDIMIENTO PARA FACTURAS
 -- ============================================================
-CREATE OR ALTER PROCEDURE sp_BulkInsert_Factura
+CREATE OR ALTER PROCEDURE dbo.BulkInsert_Factura
     @RutaArchivo NVARCHAR(500)
 AS
 BEGIN
@@ -306,7 +302,7 @@ GO
 -- ============================================================
 -- 8. PROCEDIMIENTO MAESTRO - CARGAR TODO
 -- ============================================================
-CREATE OR ALTER PROCEDURE sp_CargarTodosDesdeCsv
+CREATE OR ALTER PROCEDURE dbo.CargarTodosDesdeCsv
     @RutaCarpeta NVARCHAR(500)
 AS
 BEGIN
@@ -327,14 +323,14 @@ BEGIN
     BEGIN TRY
         PRINT 'CARGANDO DATOS DESDE ARCHIVOS CSV';
         
-        -- Orden correcto según dependencias de FK
-        EXEC sp_BulkInsert_TipoClase @RutaTipoClase;
-        EXEC sp_BulkInsert_PlanGimnasio @RutaPlanes;
-        EXEC sp_BulkInsert_Socio @RutaSocios;
-        EXEC sp_BulkInsert_Entrenador @RutaEntrenadores;
-        EXEC sp_BulkInsert_Clase @RutaClases;
-        EXEC sp_BulkInsert_Reserva @RutaReservas;
-        EXEC sp_BulkInsert_Factura @RutaFacturas;
+        -- Orden correcto segun dependencias de FK
+        EXEC dbo.BulkInsert_TipoClase @RutaTipoClase;
+        EXEC dbo.BulkInsert_PlanGimnasio @RutaPlanes;
+        EXEC dbo.BulkInsert_Socio @RutaSocios;
+        EXEC dbo.BulkInsert_Entrenador @RutaEntrenadores;
+        EXEC dbo.BulkInsert_Clase @RutaClases;
+        EXEC dbo.BulkInsert_Reserva @RutaReservas;
+        EXEC dbo.BulkInsert_Factura @RutaFacturas;
         
         PRINT 'TODOS LOS DATOS CARGADOS EXITOSAMENTE';
     END TRY
@@ -348,7 +344,7 @@ GO
 -- ============================================================
 -- 9. PROCEDIMIENTO PARA LIMPIAR TODAS LAS TABLAS
 -- ============================================================
-CREATE OR ALTER PROCEDURE sp_LimpiarTodasLasTablas
+CREATE OR ALTER PROCEDURE dbo.LimpiarTodasLasTablas
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -381,12 +377,86 @@ BEGIN
 END;
 GO
 
-EXEC sp_LimpiarTodasLasTablas;
-EXEC sp_CargarTodosDesdeCsv 'C:\datos\';
+EXEC dbo.LimpiarTodasLasTablas;
 
-EXEC sp_CargarTodosDesdeCsv 'C:\Users\Tenorio\OneDrive\Documents\admin\';
+EXEC dbo.CargarTodosDesdeCsv 'C:\Users\Tenorio\OneDrive\Documents\admin\';
 
-SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS fila_estimada, *
-FROM dbo.Clase_Staging
-WHERE TRY_CAST(Cupo AS INT) IS NULL
-  AND (Cupo IS NOT NULL AND LTRIM(RTRIM(Cupo)) <> '');
+-- ============================================================
+-- CREACIÃ“N DE USUARIOS Y ROLES
+-- ============================================================
+
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Contabilidad')
+    EXEC('CREATE SCHEMA Contabilidad');
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'RolCatedratico')
+    CREATE ROLE RolCatedratico;
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'RolAdministrador')
+    CREATE ROLE RolAdministrador;
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'RolContabilidad')
+    CREATE ROLE RolContabilidad;
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'RolBackup')
+    CREATE ROLE RolBackup;
+GO
+
+-- ROL CATEDRATICO
+GRANT SELECT ON SCHEMA::dbo TO RolCatedratico;
+GRANT SELECT ON SCHEMA::Operaciones TO RolCatedratico;
+GRANT SELECT ON SCHEMA::Contabilidad TO RolCatedratico;
+GRANT SELECT ON SCHEMA::Administracion TO RolCatedratico;
+GRANT SELECT ON SCHEMA::Reportes TO RolCatedratico;
+GRANT EXECUTE ON SCHEMA::Reportes TO RolCatedratico;
+
+GRANT SELECT, INSERT, UPDATE ON Factura TO RolContabilidad;
+GRANT SELECT ON Socio TO RolContabilidad;
+GRANT SELECT ON Reserva TO RolContabilidad;
+GRANT SELECT ON PlanGimnasio TO RolContabilidad;
+GRANT SELECT ON Clase TO RolContabilidad;
+GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA::Contabilidad TO RolContabilidad;
+DENY INSERT, UPDATE, DELETE ON Socio TO RolContabilidad;
+DENY INSERT, UPDATE, DELETE ON Reserva TO RolContabilidad;
+
+-- ROL BACKUP
+GRANT BACKUP DATABASE TO RolBackup;
+GRANT BACKUP LOG TO RolBackup;
+GRANT SELECT ON SCHEMA::dbo TO RolBackup;
+
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'catedratico_db')
+    CREATE USER catedratico_db WITH PASSWORD = '', 
+        DEFAULT_SCHEMA = dbo;
+GO
+
+-- ========== USUARIOS ADMINISTRADORES (Estudiantes) ==========
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'admin_estudiante1')
+    CREATE USER admin_estudiante1 WITH PASSWORD = '', 
+        DEFAULT_SCHEMA = dbo;
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'admin_estudiante2')
+    CREATE USER admin_estudiante2 WITH PASSWORD = '', 
+        DEFAULT_SCHEMA = dbo;
+GO
+
+-- ========== USUARIO DE CONTABILIDAD ==========
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'contabilidad_gym')
+    CREATE USER contabilidad_gym WITH PASSWORD = '', 
+        DEFAULT_SCHEMA = Contabilidad;
+GO
+
+-- ========== USUARIO DE BACKUP ==========
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'backup_admin')
+    CREATE USER backup_admin WITH PASSWORD = '', 
+        DEFAULT_SCHEMA = dbo;
+GO
+
+ALTER ROLE RolCatedratico ADD MEMBER catedratico_db;
+ALTER ROLE RolAdministrador ADD MEMBER admin_estudiante1;
+ALTER ROLE RolAdministrador ADD MEMBER admin_estudiante2;
+ALTER ROLE RolContabilidad ADD MEMBER contabilidad_gym;
+ALTER ROLE RolBackup ADD MEMBER backup_admin;
