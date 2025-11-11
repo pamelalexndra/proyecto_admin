@@ -1,7 +1,7 @@
 ﻿Id_plan,Nombre_plan,Descripcion,Costo,Duracion
-1,Plan Básico Mensual,"Permite el acceso a todas las áreas del gimnasio, plan perfecto si buscas mantenerte en forma a tu propio ritmo",29.99,30
-2,Plan Premium Mensual,"Además del acceso ilimitado, obtienes acceso a áreas exclusivas, clases grupales premium ilimitadas y seguimiento personalizado",49.99,30
-3,Plan VIP Mensual,Experiencia de lujo que incluye todo lo del plan premium más atención personalizada,79.99,30
-4,Plan Básico Anual,Todos los beneficios del Plan Básico Mensual con matrícula de inscripción gratuita,299.99,365
+1,Plan Básico Mensual,"Permite el acceso al área de pesas y cardio del gimnasio, perfecto si buscas mantenerte en forma a tu propio ritmo",29.99,30
+2,Plan Premium Mensual,"Obtienes acceso a áreas exclusivas, como la zona de spa y terapia muscular",49.99,30
+3,Plan VIP Mensual,Experiencia de lujo que incluye todo lo del plan premium más asesoría personalizada a nivel nutricional y de rutina,69.99,30
+4,Plan Básico Anual,Todos los beneficios del Plan Básico Mensual con matrícula de inscripción gratuita en el primer año,299.99,365
 5,Plan Premium Anual,Todos los beneficios del Plan Premium Mensual más descuento aplicado al pago anual,499.99,365
-6,Plan VIP Anual,Todos los beneficios del Plan VIP Mensual más descuento anual y asesoramiento nutricional,799.99,365
+6,Plan VIP Anual,Todos los beneficios del Plan VIP Mensual más descuento anual e invitación a eventos fitness privados,599.99,365
