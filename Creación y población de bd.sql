@@ -1,5 +1,5 @@
--- ============================================
--- CREACI”N DE BASE DE DATOS
+Ôªø-- ============================================
+-- CREACI√ìN DE BASE DE DATOS
 -- ============================================
 USE master;
 GO;
@@ -18,7 +18,7 @@ USE Gimnasio;
 GO
 
 -- ============================================
--- CREACI”N DE ESQUEMAS
+-- CREACI√ìN DE ESQUEMAS
 -- ============================================
 -- 1. Crear esquema gestion_clases
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'gestion_clases')
@@ -51,7 +51,7 @@ ELSE
 GO
 
 -- ============================================
--- CREACI”N DE TABLAS EN ESQUEMAS
+-- CREACI√ìN DE TABLAS EN ESQUEMAS
 -- ============================================
 -- 1. Tablas en gestion_socios
 CREATE TABLE gestion_socios.PlanGimnasio(
@@ -124,7 +124,7 @@ CREATE TABLE gestion_clases.Reserva(
 );
 
 -- ============================================
--- CREACI”N DE ROLES
+-- CREACI√ìN DE ROLES
 -- ============================================
 IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'rol_administrador' AND type = 'R')
 BEGIN
@@ -163,7 +163,7 @@ ELSE
 GO
 
 -- ============================================
--- ASIGNACI”N DE PERMISOS A ROLES
+-- ASIGNACI√ìN DE PERMISOS A ROLES
 -- ============================================
 
 -- 1. rol_administrador
@@ -195,7 +195,7 @@ GRANT SELECT ON SCHEMA::gestion_socios TO rol_analista_reportes;
 GRANT SELECT ON SCHEMA::contabilidad TO rol_analista_reportes;
 
 -- ============================================
--- CREACI”N DE USUARIOS Y ASIGNACI”N DE ROLES
+-- CREACI√ìN DE USUARIOS Y ASIGNACI√ìN DE ROLES
 -- ============================================
 -- Usuario: admin_db (Administrador)
 IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'admin_db')
@@ -270,7 +270,7 @@ ELSE
 GO
 
 -- ============================================
--- AUDITORÕA
+-- AUDITOR√çA
 -- ============================================
 USE master;
 GO
@@ -280,7 +280,7 @@ IF EXISTS (SELECT * FROM sys.server_audits WHERE name = 'AuditoriaBasica')
 BEGIN
     ALTER SERVER AUDIT AuditoriaBasica WITH (STATE = OFF);
     DROP SERVER AUDIT AuditoriaBasica;
-    PRINT '? AuditorÌa de servidor eliminada (reconfiguraciÛn)';
+    PRINT '‚óã Auditor√≠a de servidor eliminada (reconfiguraci√≥n)';
 END
 GO
 
@@ -297,7 +297,7 @@ WITH (
 );
 GO
 
--- Activar auditorÌa de servidor
+-- Activar auditor√≠a de servidor
 ALTER SERVER AUDIT AuditoriaBasica WITH (STATE = ON);
 PRINT 'Server Audit creado y activado';
 GO
@@ -314,13 +314,13 @@ FOR SERVER AUDIT AuditoriaBasica
 	ADD (SELECT ON contabilidad.Factura BY PUBLIC);
 GO
 
--- Activar auditorÌa de base de datos
+-- Activar auditor√≠a de base de datos
 ALTER DATABASE AUDIT SPECIFICATION AuditoriaBasicaFactura WITH (STATE = ON);
 PRINT 'Database Audit Specification creada y activada';
 GO
 
 -- ============================================
--- COMPROBACI”N DE QUE TODO EST¡ BIEN
+-- COMPROBACI√ìN DE QUE TODO EST√Å BIEN
 -- ============================================
 
 -- 1. Verificar esquemas
@@ -332,7 +332,7 @@ ORDER BY name;
 GO
 
 -- 2. Verificar tablas en esquemas
-PRINT 'DistribuciÛn de tablas por esquema:';
+PRINT 'Distribuci√≥n de tablas por esquema:';
 SELECT 
     SCHEMA_NAME(schema_id) AS Esquema,
     name AS Tabla
@@ -341,38 +341,54 @@ WHERE SCHEMA_NAME(schema_id) IN ('gestion_clases', 'gestion_socios', 'contabilid
 ORDER BY Esquema, Tabla;
 GO
 
--- 3. Verificar roles y privilegios
-SELECT  
-dp.name AS RoleName, 
-dp.type_desc AS RoleType, 
-perm.permission_name, 
-perm.state_desc AS PermissionState, 
-obj.name AS ObjectName, 
-obj.type_desc AS ObjectType 
-FROM sys.database_principals dp 
-LEFT 
-JOIN 
-sys.database_permissions 
-perm 
-ON 
-dp.principal_id 
-= 
-perm.grantee_principal_id 
-LEFT JOIN sys.objects obj ON perm.major_id = obj.object_id 
-WHERE dp.type = 'R' -- R = Database role 
-AND dp.name  LIKE '%rol%' 
-ORDER BY dp.name, perm.permission_name; 
-
 -- 4. Verificar roles y usuarios 
-SELECT 'MEMBER' AS CheckType, r.name AS Rol, m.name AS Miembro 
-FROM sys.database_role_members drm 
-JOIN sys.database_principals r ON drm.role_principal_id = r.principal_id 
-JOIN sys.database_principals m ON drm.member_principal_id = m.principal_id 
-WHERE r.name LIKE '%HU07861%';
+SELECT 
+    r.name AS 'Rol',
+    m.name AS 'Usuario Miembro',
+    m.create_date AS 'Fecha Creaci√≥n Usuario'
+FROM sys.database_role_members drm
+INNER JOIN sys.database_principals r 
+    ON drm.role_principal_id = r.principal_id
+INNER JOIN sys.database_principals m 
+    ON drm.member_principal_id = m.principal_id
+WHERE r.type = 'R'  -- Solo roles
+  AND r.name LIKE 'rol_%'
+ORDER BY r.name, m.name;
 
--- 5. Verificar auditorÌa
+SELECT 
+    dp.name AS Rol,
+    CASE perm.class
+        WHEN 0 THEN 'BASE DE DATOS'
+        WHEN 1 THEN 'OBJETO/TABLA'
+        WHEN 3 THEN 'ESQUEMA'
+        ELSE CAST(perm.class AS VARCHAR)
+    END AS Nivel,
+    CASE 
+        WHEN perm.class = 3 THEN SCHEMA_NAME(perm.major_id)
+        WHEN perm.class = 1 THEN OBJECT_SCHEMA_NAME(perm.major_id)
+        ELSE 'N/A'
+    END AS Esquema,
+    CASE 
+        WHEN perm.class = 1 THEN OBJECT_NAME(perm.major_id)
+        ELSE 'TODO EL ESQUEMA'
+    END AS Objeto,
+    perm.permission_name AS Permiso,
+    perm.state_desc AS Estado
+FROM sys.database_principals dp
+INNER JOIN sys.database_permissions perm 
+    ON dp.principal_id = perm.grantee_principal_id
+WHERE dp.type = 'R'
+  AND dp.name LIKE 'rol_%'
+ORDER BY 
+    dp.name, 
+    perm.class,
+    CASE WHEN perm.class = 3 THEN SCHEMA_NAME(perm.major_id) ELSE OBJECT_SCHEMA_NAME(perm.major_id) END,
+    perm.permission_name;
+GO
+
+-- 5. Verificar auditor√≠a
 PRINT '';
-PRINT 'Estado de auditorÌa:';
+PRINT 'Estado de auditor√≠a:';
 SELECT 
     a.name AS 'Server Audit',
     a.is_state_enabled AS 'Activo'
@@ -386,7 +402,7 @@ FROM sys.database_audit_specifications
 WHERE name = 'AuditoriaBasicaFactura';
 GO
 
--- 5. Consulta de auditorÌa
+-- 6. Consulta de auditor√≠a
 SELECT
 	event_time,
 	action_id,
@@ -401,7 +417,7 @@ ORDER BY event_time DESC;
 
 
 -- ============================================
--- POBLACI”N DE BASE DE DATOS
+-- POBLACI√ìN DE BASE DE DATOS
 -- ============================================
 -- 1. Tipo de clase
 CREATE OR ALTER PROCEDURE dbo.BulkInsert_TipoClase
@@ -693,7 +709,7 @@ BEGIN
         PRINT '========================================';
         PRINT '';
         
-        -- Orden correcto seg˙n dependencias de FK
+        -- Orden correcto seg√∫n dependencias de FK
         EXEC dbo.BulkInsert_TipoClase @RutaTipoClase;
         EXEC dbo.BulkInsert_PlanGimnasio @RutaPlanes;
         EXEC dbo.BulkInsert_Socio @RutaSocios;
@@ -704,16 +720,16 @@ BEGIN
         
         PRINT '';
         PRINT '========================================';
-        PRINT '? TODOS LOS DATOS CARGADOS EXITOSAMENTE';
+        PRINT '‚úì TODOS LOS DATOS CARGADOS EXITOSAMENTE';
         PRINT '========================================';
     END TRY
     BEGIN CATCH
         PRINT '';
         PRINT '========================================';
-        PRINT '? ERROR EN LA CARGA';
+        PRINT '‚úó ERROR EN LA CARGA';
         PRINT '========================================';
         PRINT 'Mensaje: ' + ERROR_MESSAGE();
-        PRINT 'LÌnea: ' + CAST(ERROR_LINE() AS NVARCHAR);
+        PRINT 'L√≠nea: ' + CAST(ERROR_LINE() AS NVARCHAR);
         PRINT 'Procedimiento: ' + ISNULL(ERROR_PROCEDURE(), 'N/A');
         THROW;
     END CATCH
@@ -766,13 +782,13 @@ BEGIN
         
         PRINT '';
         PRINT '========================================';
-        PRINT '? TODAS LAS TABLAS HAN SIDO LIMPIADAS';
+        PRINT '‚úì TODAS LAS TABLAS HAN SIDO LIMPIADAS';
         PRINT '========================================';
     END TRY
     BEGIN CATCH
         PRINT '';
         PRINT '========================================';
-        PRINT '? ERROR AL LIMPIAR TABLAS';
+        PRINT '‚úó ERROR AL LIMPIAR TABLAS';
         PRINT '========================================';
         PRINT 'Mensaje: ' + ERROR_MESSAGE();
         THROW;
@@ -787,7 +803,7 @@ BEGIN
     SET NOCOUNT ON;
     
     PRINT '========================================';
-    PRINT 'VERIFICACI”N DE DATOS CARGADOS';
+    PRINT 'VERIFICACI√ìN DE DATOS CARGADOS';
     PRINT '========================================';
     PRINT '';
     
@@ -827,7 +843,7 @@ GO
 EXEC dbo.LimpiarTodasLasTablas;
 GO
 
--- Cargar todos los datos desde csv. Modificar direcciÛn de acuerdo a la carpeta que contenga los csvs
+-- Cargar todos los datos desde csv. Modificar direcci√≥n de acuerdo a la carpeta que contenga los csvs
 EXEC dbo.CargarTodosDesdeCsv @RutaCarpeta = 'C:\Users\Tenorio\OneDrive\Documents\admin\';
 GO
 
