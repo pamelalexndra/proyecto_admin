@@ -13,7 +13,7 @@ SELECT
     SUM(f.Monto) - LAG(SUM(f.Monto)) OVER(ORDER BY MIN(f.Fecha)) as crecimiento_absoluto,
     ((SUM(f.Monto) - LAG(SUM(f.Monto)) OVER(ORDER BY MIN(f.Fecha))) 
      * 100.0 / LAG(SUM(f.Monto)) OVER(ORDER BY MIN(f.Fecha))) as crecimiento_porcentual
-FROM Factura f
+FROM contabilidad.Factura f
 WHERE f.Estado = 'Pagada'
 GROUP BY FORMAT(f.Fecha, 'yyyy-MM')
 ORDER BY mes;
@@ -26,8 +26,8 @@ SELECT
     e.Salario,
     RANK() OVER(ORDER BY e.Salario DESC) AS ranking_salario,
     ROUND(e.Salario * 100.0 / SUM(e.Salario) OVER(), 2) AS porcentaje_del_total_salarial
-FROM Entrenador e
-LEFT JOIN Clase c ON e.Dui = c.Dui
+FROM gestion_clases.Entrenador e
+LEFT JOIN gestion_clases.Clase c ON e.Dui = c.Dui
 GROUP BY e.Dui, e.Nombre, e.Salario, e.Seguro
 ORDER BY e.Salario DESC;
 
@@ -42,11 +42,11 @@ SELECT
         ORDER BY COUNT(r.Id_reserva) DESC
     ) AS Ranking_Horario
 FROM 
-    dbo.Clase c
+    gestion_clases.Clase c
 JOIN 
-    dbo.TipoClase tc ON c.Id_tipo_clase = tc.Id_tipo_clase
+    gestion_clases.TipoClase tc ON c.Id_tipo_clase = tc.Id_tipo_clase
 LEFT JOIN 
-    dbo.Reserva r ON c.Id_clase = r.Id_clase
+    gestion_clases.Reserva r ON c.Id_clase = r.Id_clase
 GROUP BY 
     tc.Nombre, 
     c.hora_clase
@@ -68,11 +68,11 @@ SELECT
         ORDER BY COUNT(DISTINCT r.fecha_reserva) DESC 
     ) AS Ranking_Mensual
 FROM 
-    dbo.Entrenador e 
+    gestion_clases.Entrenador e 
 JOIN 
-    dbo.Clase c ON e.Dui = c.Dui
+    gestion_clases.Clase c ON e.Dui = c.Dui
 JOIN 
-    dbo.Reserva r ON c.Id_clase = r.Id_clase
+    gestion_clases.Reserva r ON c.Id_clase = r.Id_clase
 GROUP BY 
     YEAR(r.fecha_reserva), 
     MONTH(r.fecha_reserva), 
@@ -88,23 +88,23 @@ ORDER BY
 
 /* Consulta 1: Tendencia de Facturaci�n. Filtra por Estado y ordena por Fecha. */
 CREATE NONCLUSTERED INDEX IX_Factura_Estado_Fecha_Monto
-ON dbo.Factura (Estado, Fecha) INCLUDE (Monto);
+ON contabilidad.Factura (Estado, Fecha) INCLUDE (Monto);
 
 /* Consulta 2: Ranking Salarios. Ordena f�sicamente los salarios. */
 CREATE NONCLUSTERED INDEX IX_Entrenador_Salario
-ON dbo.Entrenador (Salario DESC) INCLUDE (Nombre);
+ON gestion_clases.Entrenador (Salario DESC) INCLUDE (Nombre);
 
 /* Consultas 2 y 4: Soporte para JOINS con la tabla Entrenador. */
 CREATE NONCLUSTERED INDEX IX_Clase_Dui
-ON dbo.Clase (Dui);
+ON gestion_clases.Clase (Dui);
 
 /* Consulta 3: Ranking Horarios. Optimiza el agrupamiento por Tipo y Hora. */
 CREATE NONCLUSTERED INDEX IX_Clase_IdTipo_Hora
-ON dbo.Clase (Id_tipo_clase, hora_clase);
+ON gestion_clases.Clase (Id_tipo_clase, hora_clase);
 
 /* Consultas 3 y 4: Soporte cr�tico para JOINS de Reservas y an�lisis temporal. */
 CREATE NONCLUSTERED INDEX IX_Reserva_IdClase_Fecha
-ON dbo.Reserva (Id_clase, fecha_reserva);
+ON gestion_clases.Reserva (Id_clase, fecha_reserva);
 
 GO
 
