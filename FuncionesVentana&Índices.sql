@@ -87,8 +87,8 @@ ORDER BY
 
 
 /* Consulta 1: Tendencia de Facturaci�n. Filtra por Estado y ordena por Fecha. */
-CREATE NONCLUSTERED INDEX IX_Factura_Estado_Fecha_Monto
-ON contabilidad.Factura (Estado, Fecha) INCLUDE (Monto);
+CREATE NONCLUSTERED INDEX IX_Factura_Estado_Fecha
+ON contabilidad.Factura (Estado, Fecha)
 
 /* Consulta 2: Ranking Salarios. Ordena f�sicamente los salarios. */
 CREATE NONCLUSTERED INDEX IX_Entrenador_Salario
